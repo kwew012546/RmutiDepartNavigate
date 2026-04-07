@@ -4,7 +4,7 @@ import { showCustomRouteInfo, clearSelectPath } from "./show_custom_route_info.j
 let user = null;
 export async function getRoutes( destination, map, userLocation ) {
     let processedRoutes = [];
-    const apiKey = "AIzaSyB5iq8uZXQJoBRqi1VVRkXPx547kFFVb8s";
+    const apiKey = "API KEYS";
     const url = "https://routes.googleapis.com/directions/v2:computeRoutes";
     if (userLocation instanceof Promise) {
       userLocation = await userLocation;
