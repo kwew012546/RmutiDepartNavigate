@@ -1,8 +1,54 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 include '../../connect.php';
 
-$name = $_GET['name'] ?? '';
+/**
+ * Parses business hours text into an array mapping Thai day names to times
+ */
+function parseBusinessHours($text)
+{
+    $daysMap = [
+        'จันทร์' => 'วันจันทร์',
+        'อังคาร' => 'วันอังคาร',
+        'พุธ' => 'วันพุธ',
+        'พฤหัสบดี' => 'วันพฤหัสบดี',
+        'ศุกร์' => 'วันศุกร์',
+        'เสาร์' => 'วันเสาร์',
+        'อาทิตย์' => 'วันอาทิตย์'
+    ];
+
+    $resultTime = [];
+
+    if (preg_match('/(.*?)เวลา\s*([0-9:\s\-]+น\.)/', $text, $matches)) {
+        $daysText = trim($matches[1]);
+        $timeText = 'เวลา ' . trim($matches[2]);
+
+        if (preg_match('/(\S+)\s*-\s*(\S+)/u', $daysText, $rangeMatch)) {
+            $start = $rangeMatch[1];
+            $end = $rangeMatch[2];
+            $keys = array_keys($daysMap);
+            $startIndex = array_search($start, $keys);
+            $endIndex = array_search($end, $keys);
+
+            if ($startIndex !== false && $endIndex !== false) {
+                for ($i = $startIndex; $i <= $endIndex; $i++) {
+                    $dayFull = $daysMap[$keys[$i]];
+                    $resultTime[$dayFull] = $timeText;
+                }
+            }
+        } else {
+            foreach ($daysMap as $short => $full) {
+                if (mb_strpos($daysText, $short) !== false) {
+                    $resultTime[$full] = $timeText;
+                }
+            }
+        }
+    }
+
+    return $resultTime;
+}
+
+$name = trim($_GET['name'] ?? '');
 
 $sql = "SELECT * FROM departments WHERE name_th = ? OR name_en = ?";
 $stmt = $conn->prepare($sql);
@@ -17,7 +63,7 @@ $response = [
 ];
 
 if ($row = $result->fetch_assoc()) {
-    $id = $row['department_id'];
+    $id = (int)$row['department_id'];
 
     $sqlserv = "SELECT * FROM services WHERE departments_id = ?";
     $stmtserv = $conn->prepare($sqlserv);
@@ -30,26 +76,27 @@ if ($row = $result->fetch_assoc()) {
 
     $images = [];
     $image_stmt = $conn->prepare("SELECT * FROM department_images WHERE departments_id = ?");
-    $image_stmt->bind_param("i", $row['department_id']);
+    $image_stmt->bind_param("i", $id);
     $image_stmt->execute();
     $image_result = $image_stmt->get_result();
 
     while ($img_row = $image_result->fetch_assoc()) {
         $images[] = $img_row;
     }
+    $image_stmt->close();
+
+    // Use relative path for portability across any folder/domain
+    $uploadUrlBase = 'admin/admin_controller/uploads/';
 
     $image_html = '';
     if (count($images) > 0) {
         $image_html .= '<div class="container">';
         
         foreach ($images as $index => $img) {
-            $img_src = '/ProjectV5/admin/admin_controller/uploads/' . htmlspecialchars($img['image_name']);
-            $num = $index + 1;
-            $total = count($images);
-
+            $img_src = $uploadUrlBase . htmlspecialchars($img['image_name']);
             $image_html .= "
             <div class='mySlides'>
-                <img src='{$img_src}' style='width:100%; height: 200px'>
+                <img src='{$img_src}' style='width:100%; height: 200px' alt='{$name_th}'>
             </div>";
         }
 
@@ -61,11 +108,11 @@ if ($row = $result->fetch_assoc()) {
             <div class='row'>";
 
             foreach ($images as $index => $img) {
-                $img_src = '/ProjectV5/admin/admin_controller/uploads/' . htmlspecialchars($img['image_name']);
+                $img_src = $uploadUrlBase . htmlspecialchars($img['image_name']);
                 $slide = $index + 1;
                 $image_html .= "
             <div class='column'>
-                <img class='imgslide cursor' src='{$img_src}' style='width:100%; height: 50px;' onclick='currentSlide({$slide})'>
+                <img class='imgslide cursor' src='{$img_src}' style='width:100%; height: 50px;' onclick='currentSlide({$slide})' alt='thumbnail'>
             </div>";
             }
             $image_html .= '</div>';
@@ -83,52 +130,8 @@ if ($row = $result->fetch_assoc()) {
     }
     $response['name_html'] = "<h3>$name_th <br> $name_en</h3>";
 
-    $weekday = htmlspecialchars($row['weekday_business_hours']);
-    $weekend = htmlspecialchars($row['weekend_business_hours']);
-    $dayHours = [];
-
-    function parseBusinessHours($text)
-    {
-        $daysMap = [
-            'จันทร์' => 'วันจันทร์',
-            'อังคาร' => 'วันอังคาร',
-            'พุธ' => 'วันพุธ',
-            'พฤหัสบดี' => 'วันพฤหัสบดี',
-            'ศุกร์' => 'วันศุกร์',
-            'เสาร์' => 'วันเสาร์',
-            'อาทิตย์' => 'วันอาทิตย์'
-        ];
-
-        $resultTime = [];
-
-        if (preg_match('/(.*?)เวลา\s*([0-9:\s\-]+น\.)/', $text, $matches)) {
-            $daysText = trim($matches[1]);
-            $timeText = 'เวลา ' . trim($matches[2]);
-
-            if (preg_match('/(\S+)\s*-\s*(\S+)/u', $daysText, $rangeMatch)) {
-                $start = $rangeMatch[1];
-                $end = $rangeMatch[2];
-                $keys = array_keys($daysMap);
-                $startIndex = array_search($start, $keys);
-                $endIndex = array_search($end, $keys);
-
-                if ($startIndex !== false && $endIndex !== false) {
-                    for ($i = $startIndex; $i <= $endIndex; $i++) {
-                        $dayFull = $daysMap[$keys[$i]];
-                        $resultTime[$dayFull] = $timeText;
-                    }
-                }
-            } else {
-                foreach ($daysMap as $short => $full) {
-                    if (mb_strpos($daysText, $short) !== false) {
-                        $resultTime[$full] = $timeText;
-                    }
-                }
-            }
-        }
-
-        return $resultTime;
-    }
+    $weekday = $row['weekday_business_hours'] ?? '';
+    $weekend = $row['weekend_business_hours'] ?? '';
 
     $dayHours = array_merge(
         parseBusinessHours($weekday),
@@ -173,6 +176,7 @@ if ($row = $result->fetch_assoc()) {
             <div class='panel-service'>คำอธิบาย: $service_description 
             <div style='color: #FF7100;'>ชั้น $service_floor ห้อง $service_room</div> </div>";
     }
+    $stmtserv->close();
 
     if (empty($services_html)) {
         $services_html = "<p>ไม่มีบริการที่เกี่ยวข้อง</p>";
@@ -212,9 +216,7 @@ if ($row = $result->fetch_assoc()) {
         $response['detail_html'] .= "<p><i class='fa fa-globe' style='font-size:16px; margin-right: 8px;'></i>-</p>";
     }
     $note = htmlspecialchars($row['note']);
-    if (empty($row['note'])) {
-        $response['detail_html'] .= "";
-    } else {
+    if (!empty($row['note'])) {
         $response['detail_html'] .= "<p><i class='fa fa-info-circle' style='font-size:16px; margin-right: 12px;'></i>$note</p>";
     }
 
@@ -222,4 +224,5 @@ if ($row = $result->fetch_assoc()) {
     $response['detail_html'] = '<p>ไม่พบข้อมูลของหน่วยงาน</p>';
 }
 
-echo json_encode($response);
+$stmt->close();
+echo json_encode($response, JSON_UNESCAPED_UNICODE);

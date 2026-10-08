@@ -13,26 +13,6 @@ window.togglePassword = function(passwordInputId, iconId) {
   }
 }
 
-$(document).ready(function() {
-  $('#registerform').on('submit', function(e) {
-      e.preventDefault();
-      var formData = new FormData(this);
-      $.ajax({
-          url: 'controller/insert_user.php',
-          method: 'POST',
-          data: formData,
-          contentType: false,
-          processData: false,
-          success: function(response) {
-              console.log(response);
-              $('#registerform')[0].reset();
-          },
-          error: function() {
-              alert('เกิดข้อผิดพลาดในการส่งข้อมูล');
-          }
-      });
-  });
-});
 
 $(document).ready(function() {
   $('#loginform').on('submit', function(e) {

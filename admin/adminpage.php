@@ -1,3 +1,6 @@
+<?php
+    require_once __DIR__ . '/../login/controller/check_auth.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,15 +18,14 @@
     <div class="header">
         <h1>หน่วยงานราชการมหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน</h1>
         <?php
-            session_start();
-            $username = htmlspecialchars($_SESSION['username']);
+            $username = htmlspecialchars($_SESSION['username'] ?? 'Admin');
             echo "
                 <div class='admin' onclick='toggleDropdown()' style='cursor:pointer;'>
                     $username
                     <div id='dropdown' class='dropdown' style='display:none; position:absolute; background:#fff; border:1px solid #ccc; padding:10px;'>
                         <a href='../index.php'>กลับไปหน้าหลัก</a>
                         <a href='../index.php'>คู่มือการใช้งาน</a>
-                        <a href='./login/controller/log_out.php' onclick=\"return confirm('คุณต้องการออกจากระบบใช่หรือไม่?');\">ออกจากระบบ</a>
+                        <a href='../login/controller/log_out.php' onclick=\"return confirm('คุณต้องการออกจากระบบใช่หรือไม่?');\">ออกจากระบบ</a>
                     </div>
                 </div>";
             ?>

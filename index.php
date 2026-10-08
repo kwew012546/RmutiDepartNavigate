@@ -1,3 +1,23 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['usercode']) && !empty($_COOKIE['remember_token'])) {
+    require_once __DIR__ . '/connect.php';
+    $token = $_COOKIE['remember_token'];
+    $stmt = $conn->prepare("SELECT usercode, username FROM users WHERE remember_token = ?");
+    if ($stmt) {
+        $stmt->bind_param("s", $token);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($user = $result->fetch_assoc()) {
+            $_SESSION['usercode'] = $user['usercode'];
+            $_SESSION['username'] = $user['username'];
+        }
+        $stmt->close();
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -20,7 +40,6 @@
       Technology Isan</div>
     <div id="loginRegister">
       <?php
-      session_start();
       if (isset($_SESSION['usercode'])) {
         $username = htmlspecialchars($_SESSION['username']);
         echo "
@@ -91,11 +110,16 @@
     </div>
     <div style="width: 100%; flex-direction: row;">
       <div id="map"></div>
-      <div style="margin-left: 10px; margin-top: 10px;">**หมายเหตุ ในกรณีที่หมุดของคุณ (<img
-          src="https://cdn-icons-png.flaticon.com/128/3710/3710297.png" style="width: 30px; margin-bottom: -10px;">)
-        ไม่ตรงกับตำแหน่งของคุณ คุณสามารถเลื่อนหมุดไปยังตำแหน่งที่ตุณต้องการและกดค้นหาเส้นทางอีกครั้งได้ <button
-          id="resetLocationBtn">
-          รีเซ็ตตำแหน่งของคุณใหม่</button></div>
+      <div style="margin-left: 10px; margin-top: 10px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <span><i class="fa fa-map-marker-alt" style="color: #FF7100;"></i> <strong>จุดเริ่มต้นของคุณ:</strong></span>
+        <select id="startLocationSelect" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; background: #fff; cursor: pointer;">
+          <option value="gps">📍 ตำแหน่งปัจจุบันของคุณ (GPS)</option>
+        </select>
+        <button id="resetLocationBtn" style="padding: 6px 14px; background: #FF7100; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+          <i class="fa fa-sync-alt"></i> รีเซ็ตตำแหน่งใหม่
+        </button>
+        <span style="color: #666; font-size: 13px;">(สามารถลากหมุด <img src="https://cdn-icons-png.flaticon.com/128/3710/3710297.png" style="width: 20px; vertical-align: middle;"> เพื่อเปลี่ยนตำแหน่งเริ่มต้นบนแผนที่ได้)</span>
+      </div>
       <div id="toast" style="
           visibility: hidden;
           min-width: 200px;

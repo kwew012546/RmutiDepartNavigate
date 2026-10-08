@@ -13,7 +13,8 @@
 
 <p align="center">
   ระบบเว็บแอปพลิเคชันแนะนำเส้นทางและค้นหาข้อมูลหน่วยงาน งานบริการ อาคาร และห้องปฏิบัติการ<br>
-  ภายในมหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน (ศูนย์กลางนครราชสีมา) ด้วย Google Maps & Routes API
+  ภายในมหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน (ศูนย์กลางนครราชสีมา) ด้วย Google Maps & Routes API<br>
+  พร้อมระบบติดตั้งฐานข้อมูลอัตโนมัติ (Web Installer) และระบบค้นหาอัจฉริยะ (Fuzzy String Search)
 </p>
 
 </div>
@@ -27,6 +28,12 @@
 - [🗄️ โครงสร้างฐานข้อมูล (Database Schema)](#️-โครงสร้างฐานข้อมูล-database-schema)
 - [📂 โครงสร้างโฟลเดอร์ (Project Structure)](#-โครงสร้างโฟลเดอร์-project-structure)
 - [🚀 ขั้นตอนการติดตั้งและรันระบบ (Installation & Setup)](#-ขั้นตอนการติดตั้งและรันระบบ-installation--setup)
+  - [1. ความต้องการของระบบ (Prerequisites)](#1-ความต้องการของระบบ-prerequisites)
+  - [2. ดาวน์โหลดโปรเจกต์ (Clone)](#2-ดาวน์โหลดโปรเจกต์-clone-repository)
+  - [3. ตั้งค่าฐานข้อมูล (Configuration)](#3-ตั้งค่าฐานข้อมูล-database-configuration)
+  - [4. ติดตั้งฐานข้อมูล (Auto Installer / SQL Script)](#4-ติดตั้งฐานข้อมูล-automatic-installer--sql-import)
+  - [5. ตั้งค่า Google Maps API Key](#5-การตั้งค่า-google-maps-api-key)
+  - [6. เริ่มต้นใช้งาน](#6-เปิดใช้งานระบบ-run-application)
 - [🔐 การตั้งค่าความปลอดภัยและ API Key (Configuration & Security)](#-การตั้งค่าความปลอดภัยและ-api-key-configuration--security)
 - [👥 ผู้จัดทำ (Authors)](#-ผู้จัดทำ-authors)
 - [📄 ใบอนุญาต (License)](#-ใบอนุญาต-license)
@@ -35,22 +42,26 @@
 
 ## 📖 เกี่ยวกับโปรเจกต์ (About The Project)
 
-**RMUTI Department Navigate** เป็นระบบที่พัฒนาขึ้นเพื่อแก้ปัญหาความยากลำบากในการเดินทางและค้นหาสถานที่ภายใน **มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน (นครราชสีมา)** สำหรับนักศึกษา บุคลากร ผู้ปกครอง และบุคคลภายนอก 
+**RMUTI Department Navigate** เป็นระบบที่พัฒนาขึ้นเพื่อแก้ปัญหาความยากลำบากในการเดินทางและค้นหาสถานที่ภายใน **มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน (ศูนย์กลางนครราชสีมา)** สำหรับนักศึกษา บุคลากร ผู้ปกครอง และบุคคลภายนอก 
 
 ระบบช่วยให้ผู้ใช้งานสามารถ:
-1. ค้นหาชื่อหน่วยงาน งานบริการ หรือคีย์เวิร์ดที่เกี่ยวข้องได้อย่างรวดเร็ว
-2. ทราบตำแหน่งอาคาร ชั้น ห้อง เวลาทำการ และข้อมูลติดต่อ
+1. ค้นหาชื่อหน่วยงาน งานบริการ หรือคำสำคัญ (Keywords) ที่เกี่ยวข้องได้อย่างรวดเร็ว แม้พิมพ์คำผิดหรือสะกดไม่ครบ
+2. ทราบตำแหน่งอาคาร ชั้น หมายเลขห้อง เวลาเปิด-ปิดทำการ และช่องทางติดต่อ
 3. ดูภาพถ่ายอาคารและจุดสังเกตเพื่อความแม่นยำในการเดินทาง
-4. คำนวณและแสดงเส้นทางนำทางแบบเรียลไทม์ตามรูปแบบการเดินทางที่ต้องการ (เดินเท้า, มอเตอร์ไซค์, หรือรถยนต์)
+4. เลือกจุดเริ่มต้นได้อย่างยืดหยุ่น (GPS ปัจจุบัน, เลือกอาคารเริ่มต้น, หรือลากหมุดบนแผนที่)
+5. คำนวณและแสดงเส้นทางนำทางแบบเรียลไทม์ รองรับ 4 โหมดการเดินทาง (เส้นทางที่ดีที่สุด, รถยนต์, รถจักรยานยนต์, เดินเท้า)
 
 ---
 
 ## ✨ ฟีเจอร์หลัก (Key Features)
 
 ### 👤 ส่วนผู้ใช้งานทั่วไป (User Features)
-- 🗺️ **Interactive Campus Map**: แผนที่มหาวิทยาลัยแบบโต้ตอบ รองรับการซูม เลื่อน และแสดง Custom Marker ของแต่ละอาคาร
-- 📍 **Real-time Geolocation & Draggable Pin**: ตรวจจับพิกัดปัจจุบันของผู้ใช้ และสามารถลากหมุดเพื่อเปลี่ยนจุดเริ่มต้นได้ตามต้องการ
-- 🔍 **Smart Fuzzy Search**: ระบบค้นหาอัจฉริยะที่รองรับทั้งภาษาไทยและอังกฤษ พร้อมระบบ **Fuzzy Matching** (คำนวณผ่าน Levenshtein Distance & String Similarity) ช่วยค้นหาเจอแม้ผู้ใช้พิมพ์ผิดหรือพิมพ์ไม่ครบ
+- 🗺️ **Interactive Campus Map**: แผนที่มหาวิทยาลัยแบบโต้ตอบ รองรับการซูม เลื่อน และแสดง Custom Marker ของแต่ละอาคารอย่างชัดเจน
+- 📍 **Flexible Starting Points (จุดเริ่มต้นยืดหยุ่น)**:
+  - 📡 **Current GPS Location**: ตรวจจับพิกัดปัจจุบันอัตโนมัติ (พร้อมระบบ Fallback หากไม่สามารถดึง GPS ได้)
+  - 🏢 **Building Selection Dropdown**: เลือกจุดเริ่มต้นจากรายชื่ออาคารภายในมหาวิทยาลัย
+  - 📌 **Draggable Pin**: ลากหมุดเพื่อระบุตำแหน่งเริ่มต้นบนแผนที่ได้อิสระ พร้อมปุ่มรีเซ็ตตำแหน่ง
+- 🔍 **Smart Fuzzy Search**: ระบบค้นหาอัจฉริยะที่รองรับทั้งภาษาไทยและอังกฤษ พร้อมระบบ **Fuzzy Matching** (คำนวณผ่าน Levenshtein Distance & String Similarity) ช่วยค้นหาเจอแม้สะกดผิดหรือพิมพ์ไม่ครบคำ
 - 🧭 **Multi-Modal Route Navigation**: คำนวณเส้นทางผ่าน **Google Routes API (v2)** รองรับ 4 โหมด:
   - 🌟 **Best Path**: เส้นทางแนะนำที่ดีที่สุด
   - 🚗 **Car**: เส้นทางสำหรับรถยนต์
@@ -62,17 +73,22 @@
   - ข้อมูลติดต่อ (เบอร์โทรศัพท์, อีเมล, ลิงก์เว็บไซต์)
   - เวลาทำการ (จันทร์-ศุกร์, เสาร์-อาทิตย์ พร้อมระบบวิเคราะห์เวลาเปิด-ปิด)
   - แกลเลอรีรูปภาพอาคารและหน่วยงานแบบสไลด์โชว์
-- 📊 **Search Analytics Logging**: บันทึกสถิติคำค้นหาและการเลือกผลลัพธ์ของผู้ใช้ เพื่อนำมาเพิ่มน้ำหนักความแม่นยำในการค้นหาครั้งถัดไป
+- ⚡ **Client-Side Caching**: จัดเก็บพิกัดอาคารและหน่วยงานบน `sessionStorage` ลดภาระการโหลดข้อมูลซ้ำซ้อนจากเซิร์ฟเวอร์
+- 📊 **Search Analytics Logging**: บันทึกสถิติคำค้นหาและการคลิกเลือกผลลัพธ์ของผู้ใช้ เพื่อนำมาเพิ่มน้ำหนักความแม่นยำในการค้นหาครั้งถัดไป
 
 ### 🛠️ ส่วนผู้ดูแลระบบ (Admin Features)
-- 🔒 **Secure Authentication**: ระบบล็อกอินสำหรับผู้ดูแลระบบ พร้อมการเข้ารหัสรหัสผ่าน (`password_verify`) และตัวเลือก Remember Me
+- 🔒 **Authentication & Middleware**:
+  - ระบบตรวจสอบสิทธิ์ส่วนกลาง (`check_auth.php`) ป้องกันการเข้าถึง Controller และหน้าจัดการโดยไม่ได้รับอนุญาต
+  - เข้ารหัสผ่านด้วย `password_hash()` และ `password_verify()`
+  - ระบบจำการเข้าสู่ระบบอย่างปลอดภัย (Remember Token)
+  - สคริปต์สร้างผู้ดูแลระบบเริ่มต้น (`insert_user.php`)
 - ➕ **เพิ่มข้อมูลหน่วยงานและอาคาร (Add Department & Building)**:
   - ปักหมุดระบุพิกัด Latitude / Longitude บนแผนที่แบบ Interactive
   - เลือกระบุอาคารเดิม หรือสร้างอาคารใหม่
   - กำหนดบริการย่อย คำอธิบาย คำสำคัญ (Keywords) ชั้น และห้องได้หลายรายการ
-  - อัปโหลดภาพถ่ายอาคารและหน่วยงาน
+  - อัปโหลดภาพถ่ายอาคารและหน่วยงานพร้อมระบบตรวจสอบนามสกุลไฟล์
 - ✏️ **แก้ไขและอัปเดตข้อมูล (Update Department)**: แก้ไขข้อมูลหน่วยงาน ปรับปรุงบริการ และอัปเดตรูปภาพ
-- 🗑️ **ลบข้อมูล (Delete Department)**: ระบบลบข้อมูลหน่วยงานพร้อมลบข้อมูลบริการ รูปภาพ และประวัติการค้นหาที่เชื่อมโยงกันอย่างปลอดภัย
+- 🗑️ **ลบข้อมูล (Delete Department)**: ระบบลบข้อมูลหน่วยงานพร้อมลบข้อมูลบริการ รูปภาพ และประวัติการค้นหาที่เชื่อมโยงกันแบบ Transaction ปลอดภัย
 
 ---
 
@@ -86,12 +102,13 @@
 - **Font Awesome 5** (Icons)
 
 ### Backend
-- **PHP (Native 7.4+ / 8.x)** (สถาปัตยกรรม MVC-like, Prepared Statements ป้องกัน SQL Injection)
-- **MySQL / MariaDB**
+- **PHP (Native 7.4+ / 8.x)** (Modular Controller Architecture, Prepared Statements ป้องกัน SQL Injection)
+- **MySQL / MariaDB** (Default Charset: `utf8mb4_unicode_ci`)
 
-### Algorithms & Techniques
+### Algorithms & Optimizations
 - **Fuzzy String Matching**: ใช้อัลกอริทึม `levenshtein()` และ `similar_text()` สำหรับสืบค้นคำใกล้เคียง
 - **Polyline Decoding**: ถอดรหัสเส้นทาง Polyline พิกัดความละเอียดสูงจาก Google Routes API เพื่อวาดลงบนแผนที่
+- **Database Indexing**: ดัชนีฐานข้อมูลเฉพาะทาง เพิ่มความเร็วในการค้นหาและดึงพิกัด
 
 ---
 
@@ -124,15 +141,22 @@ RmutiDepartNavigate/
 │   │   ├── update_service.php
 │   │   └── uploads/                 # โฟลเดอร์เก็บรูปภาพหน่วยงานที่อัปโหลด
 │   ├── admin_sub_content/           # UI ส่วนแท็บจัดการ (Add, Edit, Update, Delete)
-│   ├── adminpage.php                # หน้าหลักของ Admin Dashboard
+│   ├── adminpage.php                # หน้าหลักของ Admin Dashboard (พร้อมตรวจสอบสิทธิ์)
 │   ├── map_for_admin.js             # จัดการแผนที่และลากหมุดสำหรับ Admin
 │   └── style_admin_page.css
+├── database/                        # เครื่องมือและสคริปต์ฐานข้อมูล
+│   ├── add_performance_indexes.sql # สคริปต์เพิ่ม Index เพิ่มความเร็ว Query
+│   ├── install.php                  # หน้าเว็บติดตั้งฐานข้อมูลอัตโนมัติ (Web Installer)
+│   └── schema_and_seed.sql          # สคริปต์สร้างตารางพร้อมข้อมูลเริ่มต้น (UTF-8)
 ├── images/                          # รูปภาพส่วนกลาง (โลโก้, ไอคอน)
 │   └── rmuti.png
 ├── login/                           # ระบบเข้าสู่ระบบสำหรับ Admin
-│   ├── controller/                  # ตัวจัดการ Session, Login, Logout
+│   ├── controller/                  # ตัวจัดการ Session, Login, Logout, Auth
+│   │   ├── auth.php
+│   │   ├── check_auth.php           # Middleware ตรวจสอบสิทธิ์ผู้ดูแลระบบ
+│   │   ├── insert_user.php          # สคริปต์เพิ่มผู้ดูแลระบบ (Hash รหัสผ่าน)
 │   │   ├── login_user.php
-│   │   └── log_out.php
+│   │   └── logout.php
 │   ├── login.js
 │   ├── login.php
 │   └── style_login.css
@@ -148,11 +172,14 @@ RmutiDepartNavigate/
 │   │   ├── department_position.php  # พิกัดอาคารและหน่วยงาน
 │   │   ├── fuzzy_matching.php       # ค้นหาและจับคู่ความคล้ายคลึงของข้อความ
 │   │   └── search_log.php
-│   ├── map_for_user.js              # สคริปต์หลักควบคุมแผนที่ฝั่ง User
+│   ├── map_for_user.js              # สคริปต์หลักควบคุมแผนที่ฝั่ง User (Caching & Controls)
 │   └── style_user_page.css
-├── connect.php                      # ไฟล์เชื่อมต่อฐานข้อมูล MySQL
-├── index.php                        # หน้าแรกของแอปพลิเคชัน (User Page)
-└── README.md                        # เอกสารแนะนำโปรเจกต์
+├── .gitignore                       # ละเว้นไฟล์ Config ส่วนบุคคลและไฟล์ขยะ
+├── config.example.php               # ไฟล์แม่แบบการตั้งค่าฐานข้อมูลท้องถิ่น
+├── connect.example.php              # ตัวอย่างไฟล์เชื่อมต่อฐานข้อมูล
+├── connect.php                      # ตัวจัดการเชื่อมต่อฐานข้อมูล (รองรับ config.local.php & env)
+├── index.php                        # หน้าแรกของแอปพลิเคชัน (User Navigation Page)
+└── README.md                        # เอกสารแนะนำและคู่มือการใช้งานโปรเจกต์
 ```
 
 ---
@@ -172,27 +199,36 @@ git clone https://github.com/kwew012546/RmutiDepartNavigate.git
 ```
 
 ### 3. ตั้งค่าฐานข้อมูล (Database Configuration)
-1. เปิด **phpMyAdmin** หรือ Database Client
-2. สร้างฐานข้อมูลใหม่ เช่น `rmuti_depart_navigate`
-3. นำเข้าตารางฐานข้อมูลที่จำเป็น (`departments`, `building`, `services`, `department_images`, `users`, `search_logs`)
-4. ปรับแต่งการเชื่อมต่อฐานข้อมูลในไฟล์ `connect.php`:
-
+คัดลอกไฟล์ `config.example.php` เป็น `config.local.php` (ไฟล์นี้จะไม่ถูกส่งขึ้น Git เพื่อความปลอดภัย):
+```bash
+cp config.example.php config.local.php
+```
+จากนั้นแก้ไขข้อมูลในไฟล์ `config.local.php` ให้ตรงกับฐานข้อมูลในเครื่องของคุณ:
 ```php
-<?php
-    $servername = "localhost";
-    $username   = "root";
-    $password   = "";
-    $dbname     = "rmuti_depart_navigate";
-
-    $conn = new mysqli($servername, $username, $password, $dbname);
-
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-?>
+return [
+    'host' => 'localhost',
+    'user' => 'root',
+    'pass' => '',
+    'name' => 'deptnavigator_fet_st_db',
+];
 ```
 
-### 4. การตั้งค่า Google Maps API Key
+### 4. ติดตั้งฐานข้อมูล (Automatic Installer / SQL Import)
+สามารถเลือกติดตั้งได้ **2 วิธี**:
+
+* **วิธีที่ 1 (แนะนำ - สะดวกที่สุดผ่าน Web Installer)**:
+  เปิดเบราว์เซอร์แล้วเข้าไปที่:
+  ```text
+  http://localhost/RmutiDepartNavigate/database/install.php
+  ```
+  ระบบจะสร้างฐานข้อมูล ตาราง ดัชนี (Indexes) และข้อมูลเริ่มต้นให้อัตโนมัติในคลิกเดียว
+
+* **วิธีที่ 2 (นำเข้าไฟล์ SQL ด้วยตนเอง)**:
+  เปิด phpMyAdmin แล้วนำเข้า (Import) ไฟล์ต่อไปนี้ตามลำดับ:
+  1. `database/schema_and_seed.sql` (สร้างฐานข้อมูลและข้อมูลเริ่มต้น)
+  2. `database/add_performance_indexes.sql` (เพิ่มดัชนีประสิทธิภาพ)
+
+### 5. การตั้งค่า Google Maps API Key
 เปิดไฟล์ต่อไปนี้ แล้วแทนที่ `YOUR_GOOGLE_MAPS_API_KEY` ด้วย API Key ของคุณ:
 - `index.php` (บรรทัดนำเข้า Google Maps Script)
 - `admin/adminpage.php`
@@ -202,7 +238,7 @@ git clone https://github.com/kwew012546/RmutiDepartNavigate.git
 > - **Maps JavaScript API**
 > - **Routes API** (หรือ Directions API)
 
-### 5. เปิดใช้งานระบบ (Run Application)
+### 6. เปิดใช้งานระบบ (Run Application)
 เปิดเว็บเบราว์เซอร์แล้วเข้าสู่ URL:
 - **หน้าผู้ใช้งานทั่วไป**: `http://localhost/RmutiDepartNavigate/index.php`
 - **หน้าระบบผู้ดูแลระบบ**: `http://localhost/RmutiDepartNavigate/login/login.php`
@@ -213,9 +249,9 @@ git clone https://github.com/kwew012546/RmutiDepartNavigate.git
 
 > [!WARNING]
 > เพื่อความปลอดภัยของระบบและบัญชี Google Cloud ของคุณ:
-> 1. **ห้าม Commit API Key จริง หรือ รหัสผ่านฐานข้อมูลขึ้นสู่ Public Repository**
+> 1. **ห้าม Commit ไฟล์ `config.local.php`** ที่มีรหัสผ่านฐานข้อมูลจริงขึ้นสู่ GitHub โดยเด็ดขาด (ตั้งค่า `.gitignore` ไว้เรียบร้อยแล้ว)
 > 2. ควรตั้งค่า **HTTP Referrer Restrictions** บน Google Cloud Console ให้รับคำขอเฉพาะโดเมนของคุณเท่านั้น
-> 3. ในการใช้งานจริง ควรแยกการตั้งค่าฐานข้อมูลไว้ในไฟล์ `.env` หรือ `config.php` และเพิ่มลงใน `.gitignore`
+> 3. โค้ดในโปรเจกต์มีการใช้ **Prepared Statements** ในทุกจุดที่มีการรับค่าจากผู้ใช้ เพื่อป้องกัน SQL Injection
 
 ---
 

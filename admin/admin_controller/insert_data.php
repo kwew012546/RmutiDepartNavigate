@@ -1,15 +1,18 @@
 <?php
+require_once __DIR__ . '/../../login/controller/check_auth.php';
 include '../../connect.php';
-$name_th = $_POST['agencyname_TH'];
-$name_en = $_POST['agencyname_EN'];
-$phone = $_POST['phone'];
-$email = $_POST['email'];
-$workday = $_POST['workday'];
-$timestart = $_POST['timestart'];
-$timestop = $_POST['timestop'];
+
+$name_th = $_POST['agencyname_TH'] ?? '';
+$name_en = $_POST['agencyname_EN'] ?? '';
+$phone = $_POST['phone'] ?? '';
+$email = $_POST['email'] ?? '';
+$workday = $_POST['workday'] ?? '';
+$timestart = $_POST['timestart'] ?? '';
+$timestop = $_POST['timestop'] ?? '';
 $weekend_start = $_POST['weekend_timestart'] ?? '';
 $weekend_stop = $_POST['weekend_timestop'] ?? '';
 $weekday_business_hours = $weekend_business_hours = '';
+
 switch ($workday) {
     case "Monday-Friday":
         $weekday_business_hours = "จันทร์-ศุกร์ เวลา $timestart - $timestop น.";
@@ -27,9 +30,9 @@ switch ($workday) {
 if (!empty($_POST['existing_building'])) {
     [$building_number, $building, $lat, $lng] = explode('|', $_POST['existing_building']);
 } else {
-    $building = $_POST['building'];
-    $lat = $_POST['lat'];
-    $lng = $_POST['lng'];
+    $building = $_POST['building'] ?? '';
+    $lat = $_POST['lat'] ?? 0;
+    $lng = $_POST['lng'] ?? 0;
     if (!empty($_POST['buildingnumber'])) {
         $building_number = $_POST['buildingnumber'];
     } else {
@@ -39,15 +42,16 @@ if (!empty($_POST['existing_building'])) {
     }
 }
 
-$targetDir = 'uploads/';
-$allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
-$statusMsg = $errorMsg = $insertValuesSQL = $errorUpload = $errorUploadType = '';
-$errorUpload = !empty($errorUpload) ? 'Upload Error: ' . trim($errorUpload, ' | ') : '';
-$errorUploadType = !empty($errorUploadType) ? 'File Type Error: ' . trim($errorUploadType, ' | ') : '';
-$errorMsg = !empty($errorMsg) ? '<br/>' . $errorUpload . '<br/>' . $errorUploadType : '<br/>' . $errorUploadType;
-$website = $_POST['website'];
-$subordinate_to = $_POST['subordinate_to'];
-$note = $_POST['note'];
+$targetDir = __DIR__ . '/uploads/';
+if (!is_dir($targetDir)) {
+    mkdir($targetDir, 0755, true);
+}
+$allowedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+$allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+$website = $_POST['website'] ?? '';
+$subordinate_to = $_POST['subordinate_to'] ?? '';
+$note = $_POST['note'] ?? '';
 
 $check_duplicate = $conn->prepare("SELECT 1 FROM departments WHERE name_th = ? OR name_en = ?");
 $check_duplicate->bind_param("ss", $name_th, $name_en);
@@ -59,63 +63,98 @@ if ($check_duplicate->num_rows > 0) {
     echo "ชื่อหน่วยงานภาษาไทยหรือภาษาอังกฤษซ้ำกับข้อมูลที่มีอยู่แล้ว";
     exit;
 }
+$check_duplicate->close();
 
-$check_stmt = $conn->prepare("SELECT 1 FROM building WHERE building_number = ?");
-$check_stmt->bind_param("i", $building_number);
-$check_stmt->execute();
-$check_stmt->store_result();
+$conn->begin_transaction();
 
-if ($check_stmt->num_rows === 0) {
-    $stmt_bldg = $conn->prepare("INSERT INTO building (building_number, building_name, lat, lng) VALUES (?, ?, ?, ?)");
-    $stmt_bldg->bind_param("isdd", $building_number, $building, $lat, $lng);
-    $stmt_bldg->execute();
-}
+try {
+    $check_stmt = $conn->prepare("SELECT 1 FROM building WHERE building_number = ?");
+    $check_stmt->bind_param("i", $building_number);
+    $check_stmt->execute();
+    $check_stmt->store_result();
 
-$stmt = $conn->prepare("INSERT INTO departments (name_th, name_en, building, phone, email, weekday_business_hours, weekend_business_hours, website, subordinate_to, note) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    if ($check_stmt->num_rows === 0) {
+        $stmt_bldg = $conn->prepare("INSERT INTO building (building_number, building_name, lat, lng) VALUES (?, ?, ?, ?)");
+        $stmt_bldg->bind_param("isdd", $building_number, $building, $lat, $lng);
+        $stmt_bldg->execute();
+        $stmt_bldg->close();
+    }
+    $check_stmt->close();
 
-$stmt->bind_param("ssisssssss", $name_th, $name_en, $building_number, $phone, $email, $weekday_business_hours, $weekend_business_hours, $website, $subordinate_to, $note);
-if ($stmt->execute()) {
-    echo "success";
-} else {
-    http_response_code(500);
-    echo "Insert failed: $stmt->error";
-}
-$department_id = $stmt->insert_id;
+    $stmt = $conn->prepare("INSERT INTO departments (name_th, name_en, building, phone, email, weekday_business_hours, weekend_business_hours, website, subordinate_to, note) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssisssssss", $name_th, $name_en, $building_number, $phone, $email, $weekday_business_hours, $weekend_business_hours, $website, $subordinate_to, $note);
+    if (!$stmt->execute()) {
+        throw new Exception("Insert department failed: " . $stmt->error);
+    }
+    $department_id = $stmt->insert_id;
+    $stmt->close();
 
-if (isset($_FILES['images']) && is_array($_FILES['images']['name'])) {
-    $fileNames = array_filter($_FILES['images']['name']);
-    if (!empty($fileNames)) {
-        foreach ($fileNames as $key => $val) {
-            $fileName = basename($_FILES['images']['name'][$key]);
-            $targetFilePath = $targetDir . $fileName;
-            $fileType = pathinfo($targetFilePath, PATHINFO_EXTENSION);
+    // Handle Image Uploads
+    if (isset($_FILES['images']) && is_array($_FILES['images']['name'])) {
+        $fileNames = array_filter($_FILES['images']['name']);
+        if (!empty($fileNames)) {
+            foreach ($fileNames as $key => $val) {
+                $tmpPath = $_FILES['images']['tmp_name'][$key];
+                if (!empty($tmpPath) && is_uploaded_file($tmpPath)) {
+                    $fileType = strtolower(pathinfo($_FILES['images']['name'][$key], PATHINFO_EXTENSION));
 
-            if (in_array($fileType, $allowedTypes)) {
-                if (move_uploaded_file($_FILES['images']['tmp_name'][$key], $targetFilePath)) {
-                    $stmt_img = $conn->prepare("INSERT INTO department_images (departments_id, image_name, uploaded_at) VALUES (?, ?, NOW())");
-                    $stmt_img->bind_param("is", $department_id, $fileName);
-                    $stmt_img->execute();
-                } else {
-                    $errorUpload .= $_FILES['images']['name'][$key] . ' | ';
+                    // Verify extension
+                    if (!in_array($fileType, $allowedTypes, true)) {
+                        continue;
+                    }
+
+                    // Verify MIME
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime = finfo_file($finfo, $tmpPath);
+                    finfo_close($finfo);
+
+                    if (!in_array($mime, $allowedMimes, true)) {
+                        continue;
+                    }
+
+                    // Unique filename to prevent collisions and RCE
+                    $safeFileName = uniqid('dept_img_', true) . '_' . bin2hex(random_bytes(4)) . '.' . $fileType;
+                    $targetFilePath = $targetDir . $safeFileName;
+
+                    if (move_uploaded_file($tmpPath, $targetFilePath)) {
+                        $stmt_img = $conn->prepare("INSERT INTO department_images (departments_id, image_name, uploaded_at) VALUES (?, ?, NOW())");
+                        $stmt_img->bind_param("is", $department_id, $safeFileName);
+                        $stmt_img->execute();
+                        $stmt_img->close();
+                    }
                 }
-            } else {
-                $errorUploadType .= $_FILES['images']['name'][$key] . ' | ';
             }
         }
     }
-} else {
-    echo "No file uploaded.";
-}
 
-$service_names = $_POST['service'];
-$descriptions = $_POST['service_description'];
-$keywords = $_POST['keyword'];
-$floor = $_POST['floor'];
-$room = $_POST['room'];
+    // Handle Services
+    if (isset($_POST['service']) && is_array($_POST['service'])) {
+        $service_names = $_POST['service'];
+        $descriptions = $_POST['service_description'] ?? [];
+        $keywords = $_POST['keyword'] ?? [];
+        $floor = $_POST['floor'] ?? [];
+        $room = $_POST['room'] ?? [];
 
-for ($i = 0; $i < count($service_names); $i++) {
-    $stmt_service = $conn->prepare("INSERT INTO services (departments_id, service_name, description, keywords, floor, room_number) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt_service->bind_param("isssis", $department_id, $service_names[$i], $descriptions[$i], $keywords[$i], $floor[$i], $room[$i]);
-    $stmt_service->execute();
+        for ($i = 0; $i < count($service_names); $i++) {
+            if (trim($service_names[$i]) === '') continue;
+            $s_name = $service_names[$i];
+            $s_desc = $descriptions[$i] ?? '';
+            $s_keyw = $keywords[$i] ?? '';
+            $s_flor = is_numeric($floor[$i] ?? null) ? (int)$floor[$i] : 1;
+            $s_room = $room[$i] ?? '';
+
+            $stmt_service = $conn->prepare("INSERT INTO services (departments_id, service_name, description, keywords, floor, room_number) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt_service->bind_param("isssis", $department_id, $s_name, $s_desc, $s_keyw, $s_flor, $s_room);
+            $stmt_service->execute();
+            $stmt_service->close();
+        }
+    }
+
+    $conn->commit();
+    echo "success";
+} catch (Exception $e) {
+    $conn->rollback();
+    http_response_code(500);
+    echo "เกิดข้อผิดพลาด: " . $e->getMessage();
 }

@@ -46,17 +46,96 @@ checkbox.addEventListener('change', () => {
     map: map,
     position: position,
     animation: google.maps.Animation.DROP,
+    draggable: true,
+    title: "ตำแหน่งของคุณ (ลากเพื่อเปลี่ยนตำแหน่งได้)",
     icon: {
-      url: "../images/rmuti.png",
+      url: "images/rmuti.png",
       scaledSize: new google.maps.Size(20, 40),
       anchor: new google.maps.Point(10, 40),
     },
   });
 
-  const response = await fetch("user/user_controller_php/department_position.php");
-  const data = await response.json();
+  marker.addListener("dragend", async (event) => {
+    userLocation = {
+      latitude: event.latLng.lat(),
+      longitude: event.latLng.lng(),
+    };
+    const startSelect = document.getElementById("startLocationSelect");
+    if (startSelect) {
+      startSelect.value = "custom";
+    }
+    showToast("อัปเดตตำแหน่งของคุณแล้ว");
+    if (selectDestination) {
+      clearPolylines();
+      clearInfoWindows();
+      clearSelectPath();
+      await getRoutes(selectDestination, map, userLocation);
+    }
+  });
+
+  // Client-side Caching for Department Positions
+  let data = null;
+  try {
+    const cachedData = sessionStorage.getItem("rmuti_dept_positions");
+    if (cachedData) {
+      data = JSON.parse(cachedData);
+    }
+  } catch (e) {}
+
+  if (!data || !data.locations) {
+    const response = await fetch("user/user_controller_php/department_position.php");
+    data = await response.json();
+    try {
+      sessionStorage.setItem("rmuti_dept_positions", JSON.stringify(data));
+    } catch (e) {}
+  }
+
   const locations = data.locations;
   const departments = data.departments;
+
+  // Populate Start Location Select Dropdown
+  const startSelect = document.getElementById("startLocationSelect");
+  if (startSelect && locations) {
+    const customOpt = document.createElement("option");
+    customOpt.value = "custom";
+    customOpt.textContent = "📍 ตำแหน่งที่กำหนดเอง (บนแผนที่)";
+    customOpt.style.display = "none";
+    startSelect.appendChild(customOpt);
+
+    locations.forEach((loc) => {
+      const opt = document.createElement("option");
+      opt.value = `${loc.lat},${loc.lng}`;
+      opt.textContent = `🏢 ${loc.building_name}`;
+      startSelect.appendChild(opt);
+    });
+
+    startSelect.addEventListener("change", async (e) => {
+      const val = e.target.value;
+      if (val === "gps") {
+        const safeLoc = await getSafeUserLocation();
+        userLocation = safeLoc;
+        const newPos = { lat: safeLoc.latitude, lng: safeLoc.longitude };
+        marker.setPosition(newPos);
+        map.panTo(newPos);
+        showToast("เปลี่ยนจุดเริ่มต้นเป็น GPS แล้ว");
+      } else if (val !== "custom") {
+        const [latStr, lngStr] = val.split(",");
+        const lat = parseFloat(latStr);
+        const lng = parseFloat(lngStr);
+        userLocation = { latitude: lat, longitude: lng };
+        const newPos = { lat, lng };
+        marker.setPosition(newPos);
+        map.panTo(newPos);
+        showToast("เปลี่ยนจุดเริ่มต้นแล้ว");
+      }
+      if (selectDestination) {
+        clearPolylines();
+        clearInfoWindows();
+        clearSelectPath();
+        await getRoutes(selectDestination, map, userLocation);
+      }
+    });
+  }
   
   const defaultIcon = {
     url: "https://cdn-icons-png.flaticon.com/128/7945/7945007.png",
@@ -152,48 +231,66 @@ checkbox.addEventListener('change', () => {
   text.forEach(({ position, text, isImportant }) => {
     new CustomLabelOverlay(position, text, map, isImportant);
   });
-  userLocation = await getUserLocation();
-  async function getUserLocation() {
-    return new Promise((resolve, reject) => {
+  userLocation = await getSafeUserLocation();
+  async function getSafeUserLocation() {
+    return new Promise((resolve) => {
+      const defaultLoc = {
+        latitude: 14.98747028934542,
+        longitude: 102.11796446410003,
+      };
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (position) => {
+          (pos) => {
             resolve({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
             });
           },
           (error) => {
-            console.error("ไม่สามารถดึงตำแหน่งที่ตั้งของผู้ใช้ได้:", error);
-            reject(error);
-          }
+            console.warn("ไม่สามารถดึงตำแหน่ง GPS ได้ (" + error.message + ") ใช้ตำแหน่ง มทร.อีสาน เริ่มต้น");
+            resolve(defaultLoc);
+          },
+          { timeout: 7000, enableHighAccuracy: true }
         );
       } else {
-        console.error("เบราว์เซอร์ไม่รองรับ Geolocation API");
-        reject("Geolocation not supported");
+        console.warn("เบราว์เซอร์ไม่รองรับ Geolocation API");
+        resolve(defaultLoc);
       }
     });
   }
+
+  // Update marker position once real location is resolved
+  if (userLocation) {
+    marker.setPosition({ lat: userLocation.latitude, lng: userLocation.longitude });
+    map.panTo({ lat: userLocation.latitude, lng: userLocation.longitude });
+  }
+
   document
     .getElementById("resetLocationBtn")
     .addEventListener("click", async function () {
       try {
+        const safeLoc = await getSafeUserLocation();
+        userLocation = safeLoc;
+        const newPos = { lat: safeLoc.latitude, lng: safeLoc.longitude };
+        marker.setPosition(newPos);
+        map.panTo(newPos);
+
+        const startSelectEl = document.getElementById("startLocationSelect");
+        if (startSelectEl) {
+          startSelectEl.value = "gps";
+        }
+        showToast("รีเซ็ตตำแหน่ง GPS เรียบร้อยแล้ว");
+
         if (activeMarker) {
-          userLocation = {
-            latitude: 14.98747028934542,
-            longitude: 102.11796446410003,
-          };
           const pos = activeMarker.getPosition();
           selectDestination = { lat: pos.lat(), lng: pos.lng() };
           clearPolylines();
           clearInfoWindows();
           clearSelectPath();
           await getRoutes(selectDestination, map, userLocation);
-      } else {
-        return;
-      }
+        }
       } catch (error) {
-        console.log("ไม่สามารถรีเซ็ตตำแหน่งของคุณได้ กรุณาลองใหม่อีกครั้ง");
+        console.error("ไม่สามารถรีเซ็ตตำแหน่งได้:", error);
       }
     });
     window.showBuildingDepartments = function(loc) {
