@@ -1,0 +1,16 @@
+# Environment & Local Config
+config.local.php
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
