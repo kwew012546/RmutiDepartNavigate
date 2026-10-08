@@ -147,7 +147,8 @@ RmutiDepartNavigate/
 ├── database/                        # เครื่องมือและสคริปต์ฐานข้อมูล
 │   ├── add_performance_indexes.sql # สคริปต์เพิ่ม Index เพิ่มความเร็ว Query
 │   ├── install.php                  # หน้าเว็บติดตั้งฐานข้อมูลอัตโนมัติ (Web Installer)
-│   └── schema_and_seed.sql          # สคริปต์สร้างตารางพร้อมข้อมูลเริ่มต้น (UTF-8)
+│   ├── schema_and_seed.sql          # สคริปต์สร้างตารางพร้อมข้อมูลเริ่มต้น (UTF-8)
+│   └── upgrade_schema.sql           # สคริปต์อัปเกรดฐานข้อมูลโครงสร้างเวลาทำการ
 ├── images/                          # รูปภาพส่วนกลาง (โลโก้, ไอคอน)
 │   └── rmuti.png
 ├── login/                           # ระบบเข้าสู่ระบบสำหรับ Admin

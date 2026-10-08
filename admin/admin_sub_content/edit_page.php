@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../login/controller/check_auth.php';
 include '../../connect.php';
 $name = $_GET['name'] ?? '';
 
@@ -34,7 +35,6 @@ function extract_times($text) {
 $weekday_text = $data['weekday_business_hours'] ?? '';
 $weekend_text = $data['weekend_business_hours'] ?? '';
 
-
 [$weekday_start, $weekday_stop] = extract_times($weekday_text);
 [$weekend_start, $weekend_stop] = extract_times($weekend_text);
 
@@ -43,7 +43,23 @@ if (stripos($weekend_text, 'อาทิตย์') !== false) {
     $workday = 'Everyday';
 } elseif (!empty($weekend_text)) {
     $workday = 'Monday-Saturday';
+}
 
+// Prefer structured columns if available
+if (!empty($data['workday'])) {
+    $workday = $data['workday'];
+}
+if (!empty($data['weekday_open'])) {
+    $weekday_start = $data['weekday_open'];
+}
+if (!empty($data['weekday_close'])) {
+    $weekday_stop = $data['weekday_close'];
+}
+if (!empty($data['weekend_open'])) {
+    $weekend_start = $data['weekend_open'];
+}
+if (!empty($data['weekend_close'])) {
+    $weekend_stop = $data['weekend_close'];
 }
 
 $services = [];

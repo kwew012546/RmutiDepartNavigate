@@ -24,26 +24,64 @@ if ($action === 'updateform') {
             break;
     }
     
-    $sql = "UPDATE departments SET 
-        name_th=?, name_en=?, building=?,
-        phone=?, email=?, weekday_business_hours=?, weekend_business_hours=?,
-        website=?, subordinate_to=?, note=?
-        WHERE department_id=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param(
-        "ssisssssssi",
-        $_POST['name_th'],
-        $_POST['name_en'],
-        $building_number,
-        $_POST['phone'],
-        $_POST['email'],
-        $weekday_hours,
-        $weekend_hours,
-        $_POST['website'],
-        $_POST['subordinate_to'],
-        $_POST['note'],
-        $_POST['id']
-    );
+    $hasStructuredHours = false;
+    $colCheck = $conn->query("SHOW COLUMNS FROM departments LIKE 'workday'");
+    if ($colCheck && $colCheck->num_rows > 0) {
+        $hasStructuredHours = true;
+    }
+
+    $weekend_start_val = !empty($_POST['weekend_start']) ? $_POST['weekend_start'] : (!empty($_POST['saturday_start']) ? $_POST['saturday_start'] : null);
+    $weekend_stop_val = !empty($_POST['weekend_stop']) ? $_POST['weekend_stop'] : (!empty($_POST['saturday_stop']) ? $_POST['saturday_stop'] : null);
+
+    if ($hasStructuredHours) {
+        $sql = "UPDATE departments SET 
+            name_th=?, name_en=?, building=?,
+            phone=?, email=?, weekday_business_hours=?, weekend_business_hours=?,
+            website=?, subordinate_to=?, note=?,
+            workday=?, weekday_open=?, weekday_close=?, weekend_open=?, weekend_close=?
+            WHERE department_id=?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param(
+            "ssissssssssssssi",
+            $_POST['name_th'],
+            $_POST['name_en'],
+            $building_number,
+            $_POST['phone'],
+            $_POST['email'],
+            $weekday_hours,
+            $weekend_hours,
+            $_POST['website'],
+            $_POST['subordinate_to'],
+            $_POST['note'],
+            $workday,
+            $_POST['weekday_start'],
+            $_POST['weekday_stop'],
+            $weekend_start_val,
+            $weekend_stop_val,
+            $_POST['id']
+        );
+    } else {
+        $sql = "UPDATE departments SET 
+            name_th=?, name_en=?, building=?,
+            phone=?, email=?, weekday_business_hours=?, weekend_business_hours=?,
+            website=?, subordinate_to=?, note=?
+            WHERE department_id=?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param(
+            "ssisssssssi",
+            $_POST['name_th'],
+            $_POST['name_en'],
+            $building_number,
+            $_POST['phone'],
+            $_POST['email'],
+            $weekday_hours,
+            $weekend_hours,
+            $_POST['website'],
+            $_POST['subordinate_to'],
+            $_POST['note'],
+            $_POST['id']
+        );
+    }
 
     if ($stmt->execute()) {
         echo "success";

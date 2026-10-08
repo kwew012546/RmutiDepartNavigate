@@ -109,6 +109,11 @@ $queries = [
         `email` VARCHAR(150) DEFAULT NULL,
         `weekday_business_hours` VARCHAR(255) DEFAULT NULL,
         `weekend_business_hours` VARCHAR(255) DEFAULT NULL,
+        `workday` VARCHAR(50) DEFAULT 'Monday-Friday',
+        `weekday_open` VARCHAR(10) DEFAULT '08:30',
+        `weekday_close` VARCHAR(10) DEFAULT '16:30',
+        `weekend_open` VARCHAR(10) DEFAULT NULL,
+        `weekend_close` VARCHAR(10) DEFAULT NULL,
         `website` TEXT DEFAULT NULL,
         `subordinate_to` VARCHAR(255) DEFAULT NULL,
         `note` TEXT DEFAULT NULL,
@@ -196,11 +201,11 @@ $mysqli->query("INSERT INTO `building` (`building_number`, `building_name`, `lat
     (36, 'อาคาร 36 (คณะวิศวกรรมศาสตร์และเทคโนโลยี)', 14.98825000, 102.11890000)");
 
 // Departments
-$mysqli->query("INSERT INTO `departments` (`department_id`, `name_th`, `name_en`, `building`, `phone`, `email`, `weekday_business_hours`, `website`, `subordinate_to`, `note`) VALUES
-    (1, 'สำนักงานอธิการบดี', 'Office of the President', 1, '044-233000', 'president@rmuti.ac.th', 'จันทร์-ศุกร์ เวลา 08:30 - 16:30 น.', 'https://www.rmuti.ac.th', NULL, 'ศูนย์กลางบริหารงานมหาวิทยาลัย'),
-    (2, 'สำนักส่งเสริมวิชาการและงานทะเบียน', 'Academic Promotion and Registration Office', 1, '044-233000 ต่อ 2200', 'academic@rmuti.ac.th', 'จันทร์-ศุกร์ เวลา 08:30 - 16:30 น.', 'https://academic.rmuti.ac.th', 'สำนักงานอธิการบดี', 'บริการงานทะเบียนและเอกสารทางการศึกษา'),
-    (3, 'คณะวิศวกรรมศาสตร์และเทคโนโลยี', 'Faculty of Engineering and Technology', 36, '044-233000 ต่อ 3100', 'fet@rmuti.ac.th', 'จันทร์-ศุกร์ เวลา 08:30 - 16:30 น.', 'https://fet.rmuti.ac.th', NULL, 'เปิดสอนหลักสูตรวิศวกรรมศาสตร์'),
-    (4, 'สำนักวิทยบริการและเทคโนโลยีสารสนเทศ', 'Library and Information Technology Office', 19, '044-233000 ต่อ 2800', 'arit@rmuti.ac.th', 'จันทร์-ศุกร์ เวลา 08:00 - 19:30 น.', 'https://arit.rmuti.ac.th', NULL, 'ห้องสมุดกลางและศูนย์คอมพิวเตอร์')");
+$mysqli->query("INSERT INTO `departments` (`department_id`, `name_th`, `name_en`, `building`, `phone`, `email`, `weekday_business_hours`, `weekend_business_hours`, `workday`, `weekday_open`, `weekday_close`, `weekend_open`, `weekend_close`, `website`, `subordinate_to`, `note`) VALUES
+    (1, 'สำนักงานอธิการบดี', 'Office of the President', 1, '044-233000', 'president@rmuti.ac.th', 'จันทร์-ศุกร์ เวลา 08:30 - 16:30 น.', '', 'Monday-Friday', '08:30', '16:30', NULL, NULL, 'https://www.rmuti.ac.th', NULL, 'ศูนย์กลางบริหารงานมหาวิทยาลัย'),
+    (2, 'สำนักส่งเสริมวิชาการและงานทะเบียน', 'Academic Promotion and Registration Office', 1, '044-233000 ต่อ 2200', 'academic@rmuti.ac.th', 'จันทร์-ศุกร์ เวลา 08:30 - 16:30 น.', '', 'Monday-Friday', '08:30', '16:30', NULL, NULL, 'https://academic.rmuti.ac.th', 'สำนักงานอธิการบดี', 'บริการงานทะเบียนและเอกสารทางการศึกษา'),
+    (3, 'คณะวิศวกรรมศาสตร์และเทคโนโลยี', 'Faculty of Engineering and Technology', 36, '044-233000 ต่อ 3100', 'fet@rmuti.ac.th', 'จันทร์-ศุกร์ เวลา 08:30 - 16:30 น.', '', 'Monday-Friday', '08:30', '16:30', NULL, NULL, 'https://fet.rmuti.ac.th', NULL, 'เปิดสอนหลักสูตรวิศวกรรมศาสตร์'),
+    (4, 'สำนักวิทยบริการและเทคโนโลยีสารสนเทศ', 'Library and Information Technology Office', 19, '044-233000 ต่อ 2800', 'arit@rmuti.ac.th', 'จันทร์-ศุกร์ เวลา 08:00 - 19:30 น.', 'เสาร์ เวลา 08:30 - 16:30 น.', 'Monday-Saturday', '08:00', '19:30', '08:30', '16:30', 'https://arit.rmuti.ac.th', NULL, 'ห้องสมุดกลางและศูนย์คอมพิวเตอร์')");
 
 // Services
 $mysqli->query("INSERT INTO `services` (`service_id`, `departments_id`, `service_name`, `description`, `keywords`, `floor`, `room_number`) VALUES

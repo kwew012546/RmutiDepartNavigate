@@ -81,9 +81,23 @@ try {
     }
     $check_stmt->close();
 
-    $stmt = $conn->prepare("INSERT INTO departments (name_th, name_en, building, phone, email, weekday_business_hours, weekend_business_hours, website, subordinate_to, note) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssisssssss", $name_th, $name_en, $building_number, $phone, $email, $weekday_business_hours, $weekend_business_hours, $website, $subordinate_to, $note);
+    // Check if new structured columns exist in departments table
+    $hasStructuredHours = false;
+    $colCheck = $conn->query("SHOW COLUMNS FROM departments LIKE 'workday'");
+    if ($colCheck && $colCheck->num_rows > 0) {
+        $hasStructuredHours = true;
+    }
+
+    if ($hasStructuredHours) {
+        $stmt = $conn->prepare("INSERT INTO departments 
+            (name_th, name_en, building, phone, email, weekday_business_hours, weekend_business_hours, website, subordinate_to, note, workday, weekday_open, weekday_close, weekend_open, weekend_close) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssissssssssssss", $name_th, $name_en, $building_number, $phone, $email, $weekday_business_hours, $weekend_business_hours, $website, $subordinate_to, $note, $workday, $timestart, $timestop, $weekend_start, $weekend_stop);
+    } else {
+        $stmt = $conn->prepare("INSERT INTO departments (name_th, name_en, building, phone, email, weekday_business_hours, weekend_business_hours, website, subordinate_to, note) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssisssssss", $name_th, $name_en, $building_number, $phone, $email, $weekday_business_hours, $weekend_business_hours, $website, $subordinate_to, $note);
+    }
     if (!$stmt->execute()) {
         throw new Exception("Insert department failed: " . $stmt->error);
     }

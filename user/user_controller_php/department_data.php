@@ -158,9 +158,66 @@ if ($row = $result->fetch_assoc()) {
         </div>";
     }
 
+    // Real-time Open / Closed status check
+    date_default_timezone_set('Asia/Bangkok');
+    $dayOfWeek = (int)date('w'); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    $currentTime = date('H:i');
+    $isOpenNow = false;
+
+    if (!empty($row['workday']) && !empty($row['weekday_open']) && !empty($row['weekday_close'])) {
+        $wday = $row['workday'];
+        $wOpen = $row['weekday_open'];
+        $wClose = $row['weekday_close'];
+        $weOpen = $row['weekend_open'] ?? null;
+        $weClose = $row['weekend_close'] ?? null;
+
+        if ($dayOfWeek >= 1 && $dayOfWeek <= 5) {
+            if ($currentTime >= $wOpen && $currentTime <= $wClose) {
+                $isOpenNow = true;
+            }
+        } elseif ($dayOfWeek === 6) {
+            if ($wday === 'Monday-Saturday' || $wday === 'Everyday') {
+                $satOpen = $weOpen ?: $wOpen;
+                $satClose = $weClose ?: $wClose;
+                if ($currentTime >= $satOpen && $currentTime <= $satClose) {
+                    $isOpenNow = true;
+                }
+            }
+        } elseif ($dayOfWeek === 0) {
+            if ($wday === 'Everyday') {
+                $sunOpen = $weOpen ?: $wOpen;
+                $sunClose = $weClose ?: $wClose;
+                if ($currentTime >= $sunOpen && $currentTime <= $sunClose) {
+                    $isOpenNow = true;
+                }
+            }
+        }
+    } else {
+        $dayNamesTh = [
+            0 => 'วันอาทิตย์',
+            1 => 'วันจันทร์',
+            2 => 'วันอังคาร',
+            3 => 'วันพุธ',
+            4 => 'วันพฤหัสบดี',
+            5 => 'วันศุกร์',
+            6 => 'วันเสาร์'
+        ];
+        $todayTh = $dayNamesTh[$dayOfWeek];
+        $todayHours = $dayHours[$todayTh] ?? 'ปิดทำการ';
+        if ($todayHours !== 'ปิดทำการ' && preg_match('/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/', $todayHours, $m)) {
+            if ($currentTime >= $m[1] && $currentTime <= $m[2]) {
+                $isOpenNow = true;
+            }
+        }
+    }
+
+    $statusBadge = $isOpenNow 
+        ? "<span style='display:inline-block; margin-left: 8px; font-size: 13px; font-weight: bold; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px;'>🟢 เปิดทำการอยู่</span>"
+        : "<span style='display:inline-block; margin-left: 8px; font-size: 13px; font-weight: bold; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 12px;'>🔴 ปิดทำการ</span>";
+
     $response['detail_html'] .= "
         <div class='business-hours-container'>
-            <button class='accordion'><i class='fa fa-clock' style='font-size:16px; margin-right: 12px;'></i>เวลาทำการ</button>
+            <button class='accordion'><i class='fa fa-clock' style='font-size:16px; margin-right: 12px;'></i>เวลาทำการ $statusBadge</button>
             <div class='panel' style='margin-top: 10px;'>$business_hours_html</div>
         </div>
     ";
